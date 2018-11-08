@@ -1,34 +1,66 @@
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class Server {
     public static void main(String[] args){
+        ServerSocket socketserver;
+        Socket socketduserver;
+        final BufferedReader in;
+        final PrintWriter out;
+        final Scanner sc = new Scanner(System.in); //lire a partir du clavier
+
+
         try{
-            ServerSocket ss = new ServerSocket(1201);
-            Socket s = ss.accept();
+            //creer un socket serveur avec un numero de port 5000
+            socketserver = new ServerSocket(5000);
+            //ecoute pour une connexion a apporter a ce socket et l'accepte
+            socketduserver = socketserver.accept();
+            //flux pour envoyer
+            out = new PrintWriter(socketduserver.getOutputStream());
 
-            DataInputStream din = new DataInputStream(s.getInputStream());
-            DataOutputStream dout = new DataOutputStream(s.getOutputStream());
+            //flux pour recevoir
+            in = new BufferedReader(new InputStreamReader(socketduserver.getInputStream()));
+            /**
+             * On créer 2 processus car envoie et reception silmutanné
+             */
+            Thread envoyer = new Thread(new Runnable() {
+                String msg;
+                @Override
+                public void run() {
+                    while (true){
+                        msg  = sc.next();
+                        out.println(msg);
+                        out.flush();
+                    }
+                }
+            });
+            envoyer.start();
 
-            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            Thread recevoir = new Thread(new Runnable() {
+                String msg;
+                @Override
+                public void run() {
+                    while (true){
 
-            String msgin ="",msgout="";
-
-            while(!msgin.equals("end")){
-                msgin = din.readUTF();
-                System.out.println(msgin);
-                msgout = br.readLine();
-                dout.writeUTF(msgout);
-                dout.flush();
-            }
-            s.close();
+                        try {
+                            msg  = in.readLine();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        System.out.println("Client : "+msg);
+                    }
+                }
+            });
+            recevoir.start();
         }
-        catch (Exception e){
-
+        catch (IOException e){
+            e.printStackTrace();
         }
+
+
+
+
     }
 }
